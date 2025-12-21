@@ -17,9 +17,6 @@ namespace DrinkShop.WebApi.Controllers
             _voucherService = voucherService;
         }
 
-        // =======================================================
-        // 🔒 HÀM KIỂM TRA DỮ LIỆU CHUNG (PRIVATE)
-        // =======================================================
         private string? ValidateVoucher(Voucher voucher)
         {
             if (voucher.GiamGia <= 0 || voucher.GiamGia > 100)
@@ -34,10 +31,9 @@ namespace DrinkShop.WebApi.Controllers
             if (voucher.BatDau >= voucher.KetThuc)
                 return "Ngày kết thúc phải sau ngày bắt đầu.";
 
-            return null; // Không có lỗi
+            return null; 
         }
 
-        // 🧃 1️⃣ Lấy tất cả voucher
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -45,7 +41,6 @@ namespace DrinkShop.WebApi.Controllers
             return ResponseHelper.Success(vouchers, "Lấy danh sách voucher thành công");
         }
 
-        // 🧃 2️⃣ Lấy voucher theo ID
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -56,12 +51,10 @@ namespace DrinkShop.WebApi.Controllers
             return ResponseHelper.Success(voucher, "Lấy thông tin voucher thành công");
         }
 
-        // 🧃 3️⃣ Nhân viên tạo voucher
         [HttpPost]
         [Authorize(Policy = "CanManageVoucher")]
         public async Task<IActionResult> Create([FromBody] Voucher voucher)
         {
-            // ✅ Bước 1: Validate dữ liệu trước khi gọi Service
             var error = ValidateVoucher(voucher);
             if (error != null) return ResponseHelper.Error(error, 400);
 
@@ -76,12 +69,10 @@ namespace DrinkShop.WebApi.Controllers
             }
         }
 
-        // 🧃 4️⃣ Nhân viên cập nhật voucher
         [Authorize(Policy = "CanManageVoucher")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] Voucher voucher)
         {
-            // ✅ Bước 1: Validate dữ liệu
             var error = ValidateVoucher(voucher);
             if (error != null) return ResponseHelper.Error(error, 400);
 
@@ -100,7 +91,6 @@ namespace DrinkShop.WebApi.Controllers
             }
         }
 
-        // 🧃 5️⃣ Nhân viên xóa voucher
         [Authorize(Policy = "CanManageVoucher")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)

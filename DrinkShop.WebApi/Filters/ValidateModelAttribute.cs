@@ -1,10 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-// Thêm dòng này để gọi được ApiResponse từ Application
 using DrinkShop.WebApi.DTO.ApiResponse; 
-// Hoặc using DrinkShop.Application.DTO; tùy vào nơi bạn để file ApiResponse.cs
-
-// ĐỔI NAMESPACE: Từ Application.Filters -> WebApi.Filters
 namespace DrinkShop.WebApi.Filters 
 {
     public class ValidateModelAttribute : ActionFilterAttribute
@@ -21,7 +17,6 @@ namespace DrinkShop.WebApi.Filters
                         Error = x.Value!.Errors.First().ErrorMessage
                     }).ToList();
 
-                // ApiResponse nằm ở Application, nhưng WebApi gọi được vì WebApi reference Application
                 var response = new ApiResponse<object>
                 {
                     Success = false,

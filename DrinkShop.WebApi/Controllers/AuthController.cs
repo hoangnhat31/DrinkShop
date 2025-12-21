@@ -15,7 +15,6 @@ using DrinkShop.WebApi.DTO;
 using System.Security.Cryptography;
 using DrinkShop.Application.Interfaces;
 
-
 namespace DrinkShop.WebApi.Controllers
 {
     [Route("api/[controller]")]
@@ -24,19 +23,16 @@ namespace DrinkShop.WebApi.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _config;
-
-        // 👇 2. KHAI BÁO BIẾN Ở ĐÂY (Để sửa lỗi gạch đỏ thứ 1 và 3)
         private readonly IFileStorageService _fileStorageService;
 
-        // 👇 3. SỬA LẠI CONSTRUCTOR ĐỂ NHẬN SERVICE
         public AuthController(
             ApplicationDbContext context, 
             IConfiguration config,
-            IFileStorageService fileStorageService) // <--- Thêm tham số này
+            IFileStorageService fileStorageService)
         {
             _context = context;
             _config = config;
-            _fileStorageService = fileStorageService; // <--- Gán giá trị vào biến
+            _fileStorageService = fileStorageService;
         }
 
         [HttpPost("register")]
@@ -117,98 +113,50 @@ namespace DrinkShop.WebApi.Controllers
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
         {
-            var user = await _context.TaiKhoans
-                .FirstOrDefaultAsync(x => x.Email == request.Email);
+            var user = await _context.TaiKhoans.FirstOrDefaultAsync(x => x.Email == request.Email);
 
-            // ⚠️ Không lộ tồn tại user
             if (user == null)
             {
-                return Ok(new
-                {
-                    message = "Nếu tài khoản tồn tại, mã xác thực đã được gửi"
-                });
+                return Ok(new { message = "Nếu tài khoản tồn tại, mã xác thực đã được gửi" });
             }
 
-            // 🔐 Sinh token 6 số
-            var token = RandomNumberGenerator
-                .GetInt32(100000, 999999)
-                .ToString();
-
+            var token = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
             user.ResetToken = token;
             user.ResetTokenExpire = DateTime.UtcNow.AddMinutes(10);
-
             await _context.SaveChangesAsync();
 
-            // 🔴 PROD: gửi mail
-            // await _emailService.SendResetPasswordToken(user.Email, token);
-
-        #if DEBUG
-            // 🟢 DEV: trả token cho FE
-            return Ok(new
-            {
-                message = "Mã xác thực mới đã được tạo (DEV)",
-                token = token
-            });
-        #else
-            // 🔴 PROD: KHÔNG trả token
-            return Ok(new
-            {
-                message = "Nếu tài khoản tồn tại, mã xác thực đã được gửi"
-            });
-        #endif
+#if DEBUG
+            return Ok(new { message = "Mã xác thực mới đã được tạo (DEV)", token = token });
+#else
+            return Ok(new { message = "Nếu tài khoản tồn tại, mã xác thực đã được gửi" });
+#endif
         }
-
-
 
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
         {
-            // 1️⃣ Validate input sớm (tránh request rác)
-            if (string.IsNullOrWhiteSpace(request.Token) ||
-                string.IsNullOrWhiteSpace(request.NewPassword))
-            {
+            if (string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword))
                 return BadRequest(new { message = "Thiếu token hoặc mật khẩu mới" });
-            }
 
             if (request.NewPassword.Length < 6)
-            {
                 return BadRequest(new { message = "Mật khẩu phải ít nhất 6 ký tự" });
-            }
 
-            // 2️⃣ Tìm user theo token (CHƯA check expire vội)
-            var user = await _context.TaiKhoans
-                .FirstOrDefaultAsync(x => x.ResetToken == request.Token);
+            var user = await _context.TaiKhoans.FirstOrDefaultAsync(x => x.ResetToken == request.Token);
 
-            // 3️⃣ Token không tồn tại
             if (user == null)
-            {
                 return BadRequest(new { message = "Mã xác nhận không hợp lệ" });
-            }
 
-            // 4️⃣ Token hết hạn
-            if (!user.ResetTokenExpire.HasValue ||
-                user.ResetTokenExpire.Value < DateTime.UtcNow)
-            {
+            if (!user.ResetTokenExpire.HasValue || user.ResetTokenExpire.Value < DateTime.UtcNow)
                 return BadRequest(new { message = "Mã xác nhận đã hết hạn" });
-            }
 
-            // 5️⃣ Update mật khẩu
             user.MatKhau = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-
-            // 6️⃣ VÔ HIỆU token ngay lập tức (rất quan trọng)
             user.ResetToken = null;
             user.ResetTokenExpire = null;
 
             await _context.SaveChangesAsync();
 
-            // 7️⃣ Trả kết quả OK
-            return Ok(new
-            {
-                message = "Đặt lại mật khẩu thành công"
-            });
+            return Ok(new { message = "Đặt lại mật khẩu thành công" });
         }
-
-
 
         [Authorize]
         [HttpPut("update-profile")]
@@ -234,6 +182,7 @@ namespace DrinkShop.WebApi.Controllers
                 user.DiaChi
             }, "Cập nhật thông tin thành công!");
         }
+
         [Authorize]
         [HttpPost("upload-avatar")]
         public async Task<IActionResult> UploadAvatar(IFormFile file)
@@ -247,24 +196,18 @@ namespace DrinkShop.WebApi.Controllers
 
             try
             {
-                // 1. TẠO TÊN FILE CÓ FOLDER 'avatars/'
                 var ext = Path.GetExtension(file.FileName);
-                // Result: avatars/user_10_GUID.jpg
                 var fileName = $"avatars/user_{userId}_{Guid.NewGuid()}{ext}";
 
-                // 2. GỌI SERVICE
                 string fullUrl;
                 using (var stream = file.OpenReadStream())
                 {
-                    // Truyền fileName đã có folder vào đây
                     fullUrl = await _fileStorageService.UploadFileAsync(stream, fileName, file.ContentType);
                 }
 
-                // 3. LƯU VÀO DB
                 var user = await _context.TaiKhoans.FindAsync(userId);
                 if (user == null) return NotFound();
 
-                // (Optional) Xóa avatar cũ nếu có
                 if (!string.IsNullOrEmpty(user.Avatar))
                 {
                     await _fileStorageService.DeleteFileAsync(user.Avatar);
@@ -280,39 +223,26 @@ namespace DrinkShop.WebApi.Controllers
                 return StatusCode(500, new { message = ex.Message });
             }
         }
+
         [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> Me()
         {
-            // 1. Lấy UserID từ Token (Dạng chuỗi)
             var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            // Nếu không tìm thấy claim hoặc token lỗi
             if (string.IsNullOrEmpty(userIdString))
-            {
                 return Unauthorized(new { message = "Không tìm thấy thông tin người dùng trong Token" });
-            }
 
-            // 2. Ép kiểu sang int BÊN NGOÀI câu lệnh LINQ (Quan trọng!)
             if (!int.TryParse(userIdString, out int userId))
-            {
                 return BadRequest(new { message = "ID người dùng không hợp lệ" });
-            }
 
-            // 3. Truy vấn Database (Lúc này chỉ so sánh int với int, SQL sẽ hiểu ngay)
             var user = await _context.TaiKhoans
                 .Where(x => x.IDTaiKhoan == userId)
-                .Select(x => new {
-                    x.HoTen,
-                    x.SDT,
-                    x.DiaChi,
-                })
+                .Select(x => new { x.HoTen, x.SDT, x.DiaChi })
                 .FirstOrDefaultAsync();
 
             if (user == null)
-            {
                 return NotFound(new { message = "Không tìm thấy người dùng" });
-            }
 
             return Ok(user);
         }
@@ -331,20 +261,16 @@ namespace DrinkShop.WebApi.Controllers
 
             bool isOldPasswordCorrect = BCrypt.Net.BCrypt.Verify(request.MatKhauCu, user.MatKhau);
             if (!isOldPasswordCorrect)
-            {
                 return ResponseHelper.Error("Mật khẩu cũ không chính xác.", 400);
-            }
 
             user.MatKhau = BCrypt.Net.BCrypt.HashPassword(request.MatKhauMoi);
-
             await _context.SaveChangesAsync();
             return ResponseHelper.Success("Đổi mật khẩu thành công!");
         }
 
         private string GenerateJwtToken(TaiKhoan user)
         {
-            // Đọc từ appsettings.json thay vì viết cứng
-            var jwtSecret = _config["JWT_SECRET"] ?? "chuoi_du_phong_neu_quen_set_env_phai_tren_64_ky_tu";
+            var jwtSecret = _config["JWT_SECRET"] ?? "default_secret_key_at_least_64_characters_long";
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -382,13 +308,13 @@ namespace DrinkShop.WebApi.Controllers
                 }
             }
 
-                var token = new JwtSecurityToken(
-                issuer: "DrinkShop",           // 👈 Khớp với ValidIssuer ở trên
-                audience: "DrinkShopClient",   // 👈 Khớp với ValidAudience ở trên
+            var token = new JwtSecurityToken(
+                issuer: "DrinkShop",
+                audience: "DrinkShopClient",
                 claims: claims,
                 expires: DateTime.UtcNow.AddDays(1),
                 signingCredentials: creds
-                );
+            );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }

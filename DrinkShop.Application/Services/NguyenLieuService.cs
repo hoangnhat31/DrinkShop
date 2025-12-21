@@ -16,13 +16,11 @@ namespace DrinkShop.Application.Services
 
         public async Task<IEnumerable<NguyenLieu>> GetAllAsync()
         {
-            // ✅ Sửa Nguyenlieu -> NguyenLieu
             return await _context.NguyenLieu.Where(n => !n.IsDeleted).ToListAsync();
         }
 
         public async Task<NguyenLieu?> GetByIdAsync(int id)
         {
-            // ✅ Sửa Nguyenlieu -> NguyenLieu
             return await _context.NguyenLieu.FindAsync(id);
         }
 
@@ -30,7 +28,6 @@ namespace DrinkShop.Application.Services
         {
             if (soLuong <= 0) throw new Exception("Số lượng nhập phải lớn hơn 0");
 
-            // ✅ Sửa Nguyenlieu -> NguyenLieu
             var item = await _context.NguyenLieu.FindAsync(id);
             if (item == null) throw new Exception("Không tìm thấy nguyên liệu");
 
@@ -45,7 +42,6 @@ namespace DrinkShop.Application.Services
             {
                 IDNguyenLieu = id,
                 SoLuongThayDoi = luongNhap,
-                // ✅ Giờ dòng này sẽ hết lỗi vì bên Entity đã có
                 SoLuongSauKhiDoi = item.SoLuongTon ?? 0, 
                 LyDo = string.IsNullOrEmpty(ghiChu) ? "Nhập hàng mới" : ghiChu,
                 NguoiThucHien = username,
@@ -60,7 +56,6 @@ namespace DrinkShop.Application.Services
         {
             if (soLuong <= 0) throw new Exception("Số lượng hủy phải lớn hơn 0");
 
-            // ✅ Sửa Nguyenlieu -> NguyenLieu
             var item = await _context.NguyenLieu.FindAsync(id);
             if (item == null) throw new Exception("Không tìm thấy nguyên liệu");
 
@@ -75,7 +70,6 @@ namespace DrinkShop.Application.Services
             {
                 IDNguyenLieu = id,
                 SoLuongThayDoi = -slHuy,
-                // ✅ Giờ dòng này sẽ hết lỗi
                 SoLuongSauKhiDoi = item.SoLuongTon ?? 0,
                 LyDo = lyDo,
                 NguoiThucHien = username,
@@ -88,7 +82,6 @@ namespace DrinkShop.Application.Services
 
         public async Task DeleteAsync(int id)
         {
-            // ✅ Sửa Nguyenlieu -> NguyenLieu
             var item = await _context.NguyenLieu.FindAsync(id);
             if (item == null) throw new Exception("Không tìm thấy nguyên liệu");
             
@@ -99,7 +92,7 @@ namespace DrinkShop.Application.Services
         public async Task<IEnumerable<LichSuKho>> GetHistoryAsync(int? nguyenLieuId)
         {
             var query = _context.LichSuKho
-                .Include(h => h.NguyenLieu) // ✅ Giờ dòng này sẽ hết lỗi vì Entity đã có NguyenLieu
+                .Include(h => h.NguyenLieu) 
                 .AsQueryable();
 
             if (nguyenLieuId.HasValue)

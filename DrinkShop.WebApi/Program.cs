@@ -210,9 +210,6 @@ builder.Services.AddScoped<IPosService, PosService>();
 builder.Services.AddScoped<IStatisticRepository, StatisticRepository>();
 builder.Services.AddScoped<IThongKeService, ThongKeService>();
 
-// ==========================================
-// 7. BUILD & PIPELINE
-// ==========================================
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -220,15 +217,10 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        // 1. Lấy DbContext (ApplicationDbContext)
         var context = services.GetRequiredService<ApplicationDbContext>(); 
         
-        // 2. Lệnh chính: Áp dụng tất cả Migration đang chờ xử lý
-        // Lệnh này sẽ tạo database nếu nó chưa tồn tại.
         context.Database.Migrate(); 
         
-        // (Tùy chọn) Nếu bạn có Seed Data (chèn dữ liệu ban đầu), hãy gọi nó ở đây
-        // DbInitializer.SeedData(context, services); 
     }
     catch (Exception ex)
     {
@@ -237,29 +229,13 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "An error occurred while migrating the database.");
     }
 }
-// --- Kết thúc: KHỐI CODE TỰ ĐỘNG MIGRATION CHO DOCKER ---
 
-// --- Khối Code TỰ ĐỘNG MIGRATION (Giữ nguyên) ---
-// ...
-// --- Kết thúc Khối Code TỰ ĐỘNG MIGRATION ---
-
-
-// ********** BẮT ĐẦU PIPELINE XỬ LÝ REQUEST **********
-
-// 1. QUAN TRỌNG: Đọc Headers từ Nginx (Phải là middleware đầu tiên)
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
 });
 
-// 2. Middleware xử lý lỗi toàn cục (Đặt sớm nhất có thể)
 app.UseMiddleware<ExceptionMiddleware>();
-
-// 3. Chuyển hướng HTTPS (Nếu sử dụng, mặc dù trong Docker thường dùng HTTP)
-// app.UseHttpsRedirection(); 
-
-// 4. Routing
-
 
 app.UseRouting(); 
 app.UseCors("DrinkShopCorsPolicy");

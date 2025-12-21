@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using DrinkShop.Application.constance;
+using System.Threading.Tasks;
 
 namespace DrinkShop.WebApi.Controllers
 {
@@ -20,17 +21,12 @@ namespace DrinkShop.WebApi.Controllers
             _donHangService = donHangService;
         }
 
-        // ==========================================================
-        // 1. ADMIN – Lấy danh sách đơn hàng (phân trang + lọc)
-        // GET: api/admin/orders
-        // ==========================================================
         [HttpGet]
         public async Task<IActionResult> GetAllOrders(
             [FromQuery] PaginationParams paginationParams,
             [FromQuery] string? trangThai)
         {
-            var pagedOrders = await _donHangService
-                .GetAllOrdersAdminAsync(paginationParams, trangThai);
+            var pagedOrders = await _donHangService.GetAllOrdersAdminAsync(paginationParams, trangThai);
 
             Response.Headers.Append("X-Pagination", JsonSerializer.Serialize(new
             {
@@ -40,16 +36,9 @@ namespace DrinkShop.WebApi.Controllers
                 pagedOrders.TotalCount
             }));
 
-            return ResponseHelper.Success(
-                pagedOrders,
-                "Lấy danh sách đơn hàng thành công"
-            );
+            return ResponseHelper.Success(pagedOrders, "Lấy danh sách đơn hàng thành công");
         }
 
-        // ==========================================================
-        // 2. ADMIN – Xem chi tiết đơn hàng
-        // GET: api/admin/orders/{id}
-        // ==========================================================
         [HttpGet("{id}")]
         public async Task<IActionResult> GetOrderById(int id)
         {
@@ -58,43 +47,26 @@ namespace DrinkShop.WebApi.Controllers
             if (order == null)
                 return ResponseHelper.Error("Không tìm thấy đơn hàng", 404);
 
-            return ResponseHelper.Success(
-                order,
-                "Lấy chi tiết đơn hàng thành công"
-            );
+            return ResponseHelper.Success(order, "Lấy chi tiết đơn hàng thành công");
         }
 
-        // ==========================================================
-        // 3. ADMIN – Cập nhật trạng thái đơn hàng
-        // PUT: api/admin/orders/{id}/status
-        // ==========================================================
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateOrderStatus(
             int id,
             [FromBody] UpdateOrderStatusRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.NewStatus))
-                return ResponseHelper.Error(
-                    "Trạng thái mới (NewStatus) là bắt buộc",
-                    400
-                );
+                return ResponseHelper.Error("Trạng thái mới (NewStatus) là bắt buộc", 400);
 
-            var success = await _donHangService
-                .UpdateOrderStatusAsync(id, request.NewStatus);
+            var success = await _donHangService.UpdateOrderStatusAsync(id, request.NewStatus);
 
             if (!success)
                 return ResponseHelper.Error("Không tìm thấy đơn hàng", 404);
 
-            return ResponseHelper.Success<object>(
-                null,
-                "Cập nhật trạng thái đơn hàng thành công"
-            );
+            return ResponseHelper.Success<object>(null, "Cập nhật trạng thái đơn hàng thành công");
         }
     }
 
-    // ==========================
-    // DTO request
-    // ==========================
     public class UpdateOrderStatusRequest
     {
         public string NewStatus { get; set; } = string.Empty;

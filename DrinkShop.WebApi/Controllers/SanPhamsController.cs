@@ -7,7 +7,9 @@ using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using System.IO;
 using System;
+using System.Threading.Tasks;
 using DrinkShop.Application.constance.Response;
+using Microsoft.AspNetCore.Http;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -22,9 +24,6 @@ public class SanPhamsController : ControllerBase
         _configuration = configuration;
     }
 
-    // --- PRIVATE METHODS (Xử lý Placeholder) ---
-
-    // 1. Overload cho Entity (Dùng cho danh sách)
     private SanPham ApplyPlaceholder(SanPham sanPham)
     {
         if (sanPham == null) return null;
@@ -33,7 +32,6 @@ public class SanPhamsController : ControllerBase
         return sanPham;
     }
 
-    // 2. Overload cho DTO (Dùng cho chi tiết - Mới thêm)
     private SanPhamResponse ApplyPlaceholder(SanPhamResponse sanPham)
     {
         if (sanPham == null) return null;
@@ -42,13 +40,10 @@ public class SanPhamsController : ControllerBase
         return sanPham;
     }
 
-    // --- GET (PUBLIC) ---
-
     [AllowAnonymous]
     [HttpGet]
     public async Task<IActionResult> GetSanPhams([FromQuery] PaginationParams paginationParams, [FromQuery] string? tenSanPham, [FromQuery] int? IDPhanLoai)
     {
-        // Hàm này trả về List<SanPham> (Entity) -> Dùng ApplyPlaceholder(Entity)
         var pagedList = await _sanPhamService.GetSanPhams(paginationParams, tenSanPham, IDPhanLoai);
 
         foreach (var sanPham in pagedList.Items)
@@ -71,7 +66,6 @@ public class SanPhamsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetSanPham(int id)
     {
-        // Hàm này trả về SanPhamResponse (DTO) -> Dùng ApplyPlaceholder(DTO)
         var sanPhamDto = await _sanPhamService.GetSanPhamById(id);
         
         if (sanPhamDto == null) return NotFound();
@@ -79,14 +73,11 @@ public class SanPhamsController : ControllerBase
         return Ok(ApplyPlaceholder(sanPhamDto));
     }
 
-    // --- MANAGER (POST/PUT/DELETE) ---
-
     [Authorize(Policy = "CanManageProduct")]
     [HttpPost]
     public async Task<IActionResult> PostSanPham(SanPham sanPham)
     {
         await _sanPhamService.AddSanPham(sanPham);
-        // Lưu ý: CreatedAtAction trỏ về GetSanPham (trả về DTO) là hợp lệ
         return CreatedAtAction(nameof(GetSanPham), new { id = sanPham.IDSanPham }, sanPham);
     }
 
@@ -107,8 +98,6 @@ public class SanPhamsController : ControllerBase
         return NoContent();
     }
 
-    // --- UPLOAD ẢNH (QUAN TRỌNG: ĐÃ SỬA LOGIC GỌI SERVICE) ---
-
     [Authorize(Policy = "CanManageProduct")]
     [HttpPost("{id}/image")]
     public async Task<IActionResult> UploadImage(
@@ -118,13 +107,9 @@ public class SanPhamsController : ControllerBase
     {
         if (file == null || file.Length == 0) return BadRequest("File không hợp lệ");
 
-        // ⚠️ QUAN TRỌNG: Phải gọi hàm lấy Entity gốc (GetOriginalSanPhamById)
-        // Vì hàm GetSanPhamById cũ giờ trả về DTO, không lưu xuống DB được.
         var sanPham = await _sanPhamService.GetOriginalSanPhamById(id);
-        
         if (sanPham == null) return NotFound("Không tìm thấy sản phẩm");
 
-        // Logic xóa ảnh cũ
         if (!string.IsNullOrEmpty(sanPham.ImageUrl))
         {
             try
@@ -133,10 +118,9 @@ public class SanPhamsController : ControllerBase
                 var oldFileName = Path.GetFileName(uri.LocalPath); 
                 await fileStorageService.DeleteFileAsync(oldFileName);
             }
-            catch { /* Ignore error */ }
+            catch { }
         }
 
-        // Logic upload mới
         try
         {
             var fileExtension = Path.GetExtension(file.FileName);
@@ -145,7 +129,6 @@ public class SanPhamsController : ControllerBase
             using var stream = file.OpenReadStream();
             var url = await fileStorageService.UploadFileAsync(stream, uniqueFileName, file.ContentType);
 
-            // Cập nhật Entity
             sanPham.ImageUrl = url;
             await _sanPhamService.UpdateSanPham(sanPham);
 

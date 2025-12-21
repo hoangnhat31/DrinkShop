@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using DrinkShop.Application.Interfaces;
 using DrinkShop.Application.DTO;
-using DrinkShop.Application.constance; // Import file Permissions
+using DrinkShop.Application.constance;
 using System;
 using System.Threading.Tasks;
 
@@ -14,18 +14,12 @@ namespace DrinkShop.WebApi.Controllers
     {
         private readonly IThongKeService _service;
 
-        // Inject Service vào Controller
         public ThongKeController(IThongKeService service)
         {
             _service = service;
         }
 
-        // ==========================================
-        // 1. THỐNG KÊ DOANH THU
-        // ==========================================
-        // GET: api/thongke/revenue?type=day
         [HttpGet("revenue")]
-        // Yêu cầu quyền: STATISTIC_VIEW_REVENUE
         [Authorize(Policy = Permissions.Statistic.ViewRevenue)] 
         public async Task<IActionResult> GetRevenue(
             [FromQuery] string type = "day", 
@@ -43,12 +37,7 @@ namespace DrinkShop.WebApi.Controllers
             }
         }
 
-        // ==========================================
-        // 2. THỐNG KÊ SẢN PHẨM BÁN CHẠY
-        // ==========================================
-        // GET: api/thongke/top-products?n=5
         [HttpGet("top-products")]
-        // Yêu cầu quyền: STATISTIC_VIEW_TOP_PRODUCTS
         [Authorize(Policy = Permissions.Statistic.ViewTopProducts)]
         public async Task<IActionResult> GetTopProducts([FromQuery] int n = 5)
         {
@@ -63,12 +52,7 @@ namespace DrinkShop.WebApi.Controllers
             }
         }
 
-        // ==========================================
-        // 3. THỐNG KÊ ĐÁNH GIÁ (SAO)
-        // ==========================================
-        // GET: api/thongke/ratings
         [HttpGet("ratings")]
-        // Yêu cầu quyền: STATISTIC_VIEW_RATING
         [Authorize(Policy = Permissions.Statistic.ViewRating)]
         public async Task<IActionResult> GetRatingStats()
         {

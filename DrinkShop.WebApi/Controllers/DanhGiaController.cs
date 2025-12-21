@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using DrinkShop.Application.Interfaces;
 using System.Security.Claims;
+using System.Threading.Tasks;
+using System;
 
 [Route("api/[controller]")]
 [ApiController]
@@ -13,7 +15,6 @@ public class DanhGiaController : ControllerBase
         _danhGiaService = danhGiaService;
     }
 
-    // API lấy đánh giá cho trang Chi tiết sản phẩm
     [HttpGet("product/{productId}")]
     public async Task<IActionResult> GetReviews(int productId)
     {
@@ -21,11 +22,9 @@ public class DanhGiaController : ControllerBase
         return Ok(new { success = true, data = result });
     }
 
-    // API thực hiện đánh giá (Cần đăng nhập)
     [HttpPost]
     public async Task<IActionResult> PostReview([FromBody] CreateReviewRequest request)
     {
-        // Lấy UserId từ Token của người đang đăng nhập
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized("Vui lòng đăng nhập.");
 
@@ -46,8 +45,8 @@ public class DanhGiaController : ControllerBase
     }
 }
 
-// Model nhận request từ App
-public class CreateReviewRequest {
+public class CreateReviewRequest 
+{
     public int IdSanPham { get; set; }
     public int SoSao { get; set; }
     public string BinhLuan { get; set; } = string.Empty;

@@ -6,14 +6,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DrinkShop.Domain.Interfaces;
+
 namespace DrinkShop.Application.Services
 {
     public class ThongKeService : IThongKeService
     {
-        // QUAN TRỌNG: Khai báo biến là Repository Interface (Cái kho)
         private readonly IStatisticRepository _repo;
 
-        // Inject Repository vào Constructor
         public ThongKeService(IStatisticRepository repo)
         {
             _repo = repo;
@@ -26,7 +25,6 @@ namespace DrinkShop.Application.Services
 
             List<RevenueResult> rawData;
 
-            // Gọi hàm từ Repository (Bước 1)
             if (type?.ToLower() == "day")
                 rawData = await _repo.GetRevenueByDay(f, t);
             else if (type?.ToLower() == "month")
@@ -34,7 +32,6 @@ namespace DrinkShop.Application.Services
             else
                 rawData = await _repo.GetRevenueByYear();
 
-            // Chuyển đổi dữ liệu sang DTO
             return rawData.Select(x => new RevenueStatDto
             {
                 Period = x.TimeLabel,

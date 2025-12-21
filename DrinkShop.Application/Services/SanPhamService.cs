@@ -3,7 +3,11 @@ using DrinkShop.Application.Interfaces;
 using DrinkShop.Infrastructure;
 using DrinkShop.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
-using DrinkShop.Application.constance.Response; 
+using DrinkShop.Application.constance.Response;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace DrinkShop.Application.Services
 {
@@ -16,10 +20,6 @@ namespace DrinkShop.Application.Services
             _context = context;
         }
 
-        // ==========================================================
-        // ✅ 1. LẤY CHI TIẾT SẢN PHẨM (ĐÃ SỬA: KÈM ĐÁNH GIÁ)
-        // ==========================================================
-        // Đổi kiểu trả về từ SanPham? thành SanPhamResponse?
         public async Task<SanPhamResponse?> GetSanPhamById(int id)
         {
             var sp = await _context.SanPhams
@@ -40,22 +40,17 @@ namespace DrinkShop.Application.Services
                 IDSanPham = sp.IDSanPham,
                 TenSanPham = sp.TenSanPham,
                 Gia = sp.Gia,
-                // SỬA DÒNG NÀY: Kiểm tra kỹ nếu MoTa bị null thì lấy trường khác hoặc báo trống
-                MoTa = !string.IsNullOrEmpty(sp.MoTa) ? sp.MoTa : sp.MoTa, 
+                MoTa = sp.MoTa ?? string.Empty, 
                 ImageUrl = sp.ImageUrl,
                 DiemDanhGia = Math.Round(diemTrungBinh, 1),
                 SoLuongDanhGia = reviews.Count
             };
         }
 
-        // ✅ 2. Thêm hàm này để sửa lỗi CS0535 (Thiếu implement)
         public async Task<SanPham?> GetOriginalSanPhamById(int id)
         {
             return await _context.SanPhams.FindAsync(id);
         }
-        // ==========================================================
-        // CÁC HÀM KHÁC GIỮ NGUYÊN HOẶC CHỈNH SỬA NHẸ
-        // ==========================================================
 
         public async Task<PagedList<SanPham>> GetSanPhams(PaginationParams paginationParams, string? tenSanPham, int? idPhanLoai)
         {
@@ -71,13 +66,9 @@ namespace DrinkShop.Application.Services
                 query = query.Where(sp => sp.IDPhanLoai == idPhanLoai);
             }
 
-            // Lưu ý: Hàm này đang trả về Entity gốc (SanPham) nên sẽ không có số sao.
-            // Nếu muốn danh sách cũng hiện số sao, bạn phải sửa hàm này trả về PagedList<SanPhamResponse> (Phức tạp hơn chút).
-            // Tạm thời để nguyên logic cũ cho hàm List.
             return await PagedList<SanPham>.CreateAsync(query, paginationParams.PageNumber, paginationParams.PageSize);
         }
 
-        // Triển khai các hàm CRUD cho Manager
         public async Task AddSanPham(SanPham sanPham)
         {
             _context.SanPhams.Add(sanPham);

@@ -1,5 +1,5 @@
 services:
-  # 1. Database - Giới hạn RAM & CPU để tránh treo server
+
   db:
     container_name: drinkshop_sql_prod
     image: ${MSSQL_IMAGE}
