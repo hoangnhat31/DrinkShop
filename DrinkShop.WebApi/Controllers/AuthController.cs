@@ -11,7 +11,6 @@ using DrinkShop.WebApi.Utilities;
 using DrinkShop.WebApi.DTO.ApiResponse;
 using Microsoft.AspNetCore.Authorization;
 using DrinkShop.Application.constance;
-using FirebaseAdmin.Auth;
 using DrinkShop.WebApi.DTO;
 using System.Security.Cryptography;
 using DrinkShop.Application.Interfaces;
@@ -81,51 +80,11 @@ namespace DrinkShop.WebApi.Controllers
             if (user == null)
                 return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu." });
 
-            if (string.IsNullOrEmpty(user.MatKhau))
-                return Unauthorized(new { message = "Tài khoản này đăng nhập bằng Google." });
-
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.MatKhau, user.MatKhau);
             if (!isPasswordValid)
                 return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu." });
 
             return await ProcessLoginSuccess(user, request.RefreshToken);
-        }
-
-        [HttpPost("login-google")]
-        public async Task<IActionResult> LoginGoogle([FromBody] GoogleLoginRequest request)
-        {
-            try
-            {
-                FirebaseToken decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(request.Token);
-                string email = decodedToken.Claims["email"].ToString();
-                string name = decodedToken.Claims.ContainsKey("name") ? decodedToken.Claims["name"].ToString() : "Google User";
-
-                var user = await _context.TaiKhoans
-                                         .Include(u => u.VaiTro)
-                                         .FirstOrDefaultAsync(u => u.Email == email);
-
-                if (user == null)
-                {
-                    user = new TaiKhoan
-                    {
-                        Email = email,
-                        HoTen = name,
-                        IDVaiTro = 3,
-                        MatKhau = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString())
-                    };
-
-                    _context.TaiKhoans.Add(user);
-                    await _context.SaveChangesAsync();
-
-                    user = await _context.TaiKhoans.Include(u => u.VaiTro).FirstOrDefaultAsync(u => u.IDTaiKhoan == user.IDTaiKhoan);
-                }
-
-                return await ProcessLoginSuccess(user, null);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Lỗi xác thực Google", error = ex.Message });
-            }
         }
 
         private async Task<IActionResult> ProcessLoginSuccess(TaiKhoan user, string? existingRefreshToken)

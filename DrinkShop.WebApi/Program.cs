@@ -17,11 +17,6 @@ using dotenv.net;
 using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
-DotEnv.Load();
-// ==========================================
-// 1.1. CẤU HÌNH FIREBASE ADMIN (MỚI THÊM)
-// ==========================================
-// Đảm bảo file firebase-key.json đã set "Copy to Output Directory" -> "Copy if newer"
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DrinkShopCorsPolicy", policy =>
@@ -214,7 +209,6 @@ builder.Services.AddScoped<INguyenLieuService, NguyenLieuService>();
 builder.Services.AddScoped<IPosService, PosService>();
 builder.Services.AddScoped<IStatisticRepository, StatisticRepository>();
 builder.Services.AddScoped<IThongKeService, ThongKeService>();
-builder.Services.AddScoped<IGroqService, GroqService>();
 
 // ==========================================
 // 7. BUILD & PIPELINE

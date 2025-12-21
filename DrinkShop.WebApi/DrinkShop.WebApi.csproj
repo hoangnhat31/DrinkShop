@@ -9,7 +9,6 @@
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="dotenv.net" Version="4.0.0" />
-    <PackageReference Include="FirebaseAdmin" Version="3.4.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" /> <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -19,6 +18,9 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" /> </ItemGroup>
 
   <ItemGroup>
+    <None Update="firebase-key.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <ProjectReference Include="..\DrinkShop.Application\DrinkShop.Application.csproj" />
     
     <ProjectReference Include="..\DrinkShop.Infrastructure\DrinkShop.Infrastructure.csproj" />
