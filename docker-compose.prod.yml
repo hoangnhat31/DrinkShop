@@ -90,8 +90,9 @@ services:
     depends_on:
       - api_1
       - api_2
-    networks:
-      - drinkshop_network_prod
+networks:
+  drinkshop_network_prod:
+    driver: bridge
 
 volumes:
   sql_data_prod:
