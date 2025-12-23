@@ -4,6 +4,6 @@ namespace DrinkShop.WebApi.DTO.Auth
     {
         public string TaiKhoan { get; set; } = string.Empty;
         public string MatKhau { get; set; } = string.Empty;
-        public string? RefreshToken { get; set; } // có thể null khi login lần đầu
+        public string? RefreshToken { get; set; } 
     }
 }
