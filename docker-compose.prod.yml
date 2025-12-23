@@ -28,6 +28,10 @@ services:
         max-file: "3"
     networks:
       - drinkshop_network_prod
+  drinkshop-api:
+    image: hoangnhat2003/drinkshop-api:${IMAGE_TAG} 
+    restart: always
+
 
   # 2. Storage - Mở cổng 9000 để Client lấy ảnh
   minio:

@@ -29,6 +29,20 @@ pipeline {
                 }
             }
         }
+        stage('Deploy') {
+            steps {
+                script {
+                    sh "export IMAGE_TAG=${BUILD_NUMBER} && docker compose up -d"
+                }
+            }
+        }
+        stage('Deploy to Prod') {
+            steps {
+                script {
+                    sh "export IMAGE_TAG=${BUILD_NUMBER} && docker compose -f docker-compose.prod.yml up -d"
+                }
+            }
+        }
 
         stage('Deploy with Docker Compose') {
             steps {

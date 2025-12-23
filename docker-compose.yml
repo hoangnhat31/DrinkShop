@@ -20,6 +20,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 40s
+  drinkshop-api:
+    image: hoangnhat2003/drinkshop-api:${IMAGE_TAG:-latest} 
+    ports:
+      - "5000:8080"
+    restart: always
 
   # === 2. Service MinIO ===
   minio:
