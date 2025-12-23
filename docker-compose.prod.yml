@@ -1,8 +1,8 @@
 services:
-
+  # 1. Database - SQL Server
   db:
     container_name: drinkshop_sql_prod
-    image: ${MSSQL_IMAGE}
+    image: ${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
     restart: always
     environment:
       - ACCEPT_EULA=Y
@@ -28,12 +28,8 @@ services:
         max-file: "3"
     networks:
       - drinkshop_network_prod
-  drinkshop-api:
-    image: hoangnhat2003/drinkshop-api:${IMAGE_TAG} 
-    restart: always
 
-
-  # 2. Storage - Mở cổng 9000 để Client lấy ảnh
+  # 2. Storage - MinIO
   minio:
     container_name: drinkshop_minio_prod
     image: minio/minio:latest
@@ -52,11 +48,11 @@ services:
     networks:
       - drinkshop_network_prod
 
-  # 3. Web API - Chạy song song 2 bản để Load Balancing
+  # 3. Web API - Sử dụng Image từ Docker Hub
   api_1: &api_prod
-    build:
-      context: .
-      dockerfile: Dockerfile
+    container_name: drinkshop_api_1_prod
+    # SỬA: Dùng image đã được Jenkins push lên thay vì build
+    image: hoangnhat2003/drinkshop-api:${IMAGE_TAG:-latest}
     restart: always
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
@@ -83,14 +79,14 @@ services:
     <<: *api_prod
     container_name: drinkshop_api_2_prod
 
-  # 4. Gateway - Nginx điều phối traffic
+  # 4. Gateway - Nginx
   nginx:
     container_name: drinkshop_nginx_prod
     image: nginx:stable-alpine
     restart: always
     volumes:
       - ./${NGINX_CONFIG_FILE}:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro # Cho SSL thật
+      - /etc/letsencrypt:/etc/letsencrypt:ro 
     ports:
       - "${NGINX_PORT}:80"
       - "${NGINX_SSL_PORT}:443"

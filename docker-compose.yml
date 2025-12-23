@@ -1,8 +1,8 @@
 services:
-  # === 1. Service Database (SQL Server) ===
+  # === 1. Service Database ===
   db:
     container_name: drinkshop_sql
-    image: ${MSSQL_IMAGE} 
+    image: ${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest} 
     restart: always 
     environment:
       - ACCEPT_EULA=Y
@@ -15,42 +15,35 @@ services:
     networks:
       - drinkshop_network
     healthcheck:
-      test: ["CMD-SHELL", "cat /proc/net/tcp | grep -q 0599 || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD}' -Q 'SELECT 1' -C || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 40s
-  drinkshop-api:
-    image: hoangnhat2003/drinkshop-api:${IMAGE_TAG:-latest} 
-    ports:
-      - "5000:8080"
-    restart: always
 
   # === 2. Service MinIO ===
   minio:
     image: minio/minio
     container_name: drinkshop_minio
     ports:
-      - "9000:9000"                                                         
-      - "9001:9001"    
+      - "9000:9000" 
+      - "9001:9001" 
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - ./minio_data:/data   
+      - ./minio_data:/data 
     command: server /data --console-address ":9001"
     networks:
       - drinkshop_network
 
-  # === 3. Service API 1 & 2 ===
+  # === 3. Service API (Sử dụng Image từ Docker Hub) ===
   api_1: &api_base
     container_name: drinkshop_api_1
-    build:
-      context: . 
-      dockerfile: Dockerfile
+    # THAY ĐỔI: Sử dụng image đã build từ Jenkins thay vì build lại
+    image: hoangnhat2003/drinkshop-api:${IMAGE_TAG:-latest}
     restart: always
     environment:
-      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
       - MinIO__Endpoint=${MINIO_ENDPOINT}
@@ -59,10 +52,6 @@ services:
       - MinIO__Bucket=${MINIO_BUCKET}
       - MinIO__UseSSL=${MINIO_USE_SSL}
       - JWT_SECRET=${JWT_SECRET}
-    deploy:
-      resources:
-        limits:
-          memory: 512M
     depends_on:
       db:
         condition: service_healthy
@@ -75,25 +64,24 @@ services:
     <<: *api_base
     container_name: drinkshop_api_2
 
-  # === 4. Service Nginx ===
+  # === 4. Service Nginx (Load Balancer) ===
   nginx:
     container_name: drinkshop_nginx
     image: nginx:latest
     restart: always
     volumes:
-      - ./${NGINX_CONFIG_FILE}:/etc/nginx/nginx.conf:ro 
+      - ./${NGINX_CONFIG_FILE:-nginx.conf}:/etc/nginx/nginx.conf:ro 
     ports:
-      - "${NGINX_PORT}:80" 
+      - "${NGINX_PORT:-80}:80" 
     networks:
       - drinkshop_network
     depends_on:
       - api_1
       - api_2
 
-
 networks:
   drinkshop_network:
     driver: bridge 
 
 volumes:
-  sql_data: 
+  sql_data:

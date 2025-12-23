@@ -9,7 +9,6 @@ pipeline {
     stages {
         stage('Clone Code') {
             steps {
-
                 checkout scm
             }
         }
@@ -17,36 +16,30 @@ pipeline {
         stage('Build & Push Docker Image') {
             steps {
                 script {
- 
                     docker.withRegistry('https://index.docker.io/v1/', DOCKER_HUB_CREDS) {
                         def customImage = docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
-                        
-
                         customImage.push()
-                        
                         customImage.push("latest")
                     }
                 }
             }
         }
-        stage('Deploy') {
+
+        stage('Deploy to Development') {
             steps {
                 script {
-                    sh "export IMAGE_TAG=${BUILD_NUMBER} && docker compose up -d"
-                }
-            }
-        }
-        stage('Deploy to Prod') {
-            steps {
-                script {
-                    sh "export IMAGE_TAG=${BUILD_NUMBER} && docker compose -f docker-compose.prod.yml up -d"
+                    sh "IMAGE_TAG=${BUILD_NUMBER} docker-compose up -d"
                 }
             }
         }
 
-        stage('Deploy with Docker Compose') {
+        stage('Deploy to Prod') {
+            // Chỉ chạy stage này nếu bạn muốn deploy bản chính thức
+            when { branch 'main' } 
             steps {
-                sh 'docker-compose up -d'
+                script {
+                    sh "IMAGE_TAG=${BUILD_NUMBER} docker-compose -f docker-compose.prod.yml up -d"
+                }
             }
         }
 
