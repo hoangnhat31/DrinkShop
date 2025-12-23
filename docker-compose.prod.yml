@@ -82,18 +82,14 @@ services:
   # 4. Gateway - Nginx
   nginx:
     container_name: drinkshop_nginx_prod
-    # THAY ĐỔI: Sử dụng build thay vì image + volumes file config
     build:
       context: .
       dockerfile: Dockerfile_Nginx
     restart: always
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro # Giữ lại cái này cho SSL thật
     ports:
-      - "${NGINX_PORT:-80}:80"
-      - "${NGINX_SSL_PORT:-443}:443"
-    logging:
-      <<: *default_logging
+      - "80:80"
+    networks:
+      - drinkshop_network_prod
     depends_on:
       - api_1
       - api_2

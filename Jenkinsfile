@@ -28,14 +28,13 @@ pipeline {
         stage('Deploy to Development') {
             steps {
                 script {
-                    // PHẢI thêm đầy đủ các bí mật bạn đã tạo trong Jenkins vào đây
                     withCredentials([
                         string(credentialsId: 'drinkshop-db-password', variable: 'DB_PWD'),
                         string(credentialsId: 'drinkshop-minio-user', variable: 'MINIO_USER'),
                         string(credentialsId: 'drinkshop-minio-pass', variable: 'MINIO_PWD'),
                         string(credentialsId: 'drinkshop-jwt-secret', variable: 'JWT_SEC')
                     ]) {
-                        // Tạo chuỗi kết nối động dựa trên mật khẩu vừa lấy
+                        // Tạo chuỗi kết nối động cho .NET
                         def connStr = "Server=db;Database=DrinkShopDb;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;"
                         
                         sh """
@@ -44,8 +43,11 @@ pipeline {
                             MINIO_ROOT_USER=${MINIO_USER} \
                             MINIO_ROOT_PASSWORD=${MINIO_PWD} \
                             JWT_SECRET=${JWT_SEC} \
+                            MINIO_ENDPOINT=minio:9000 \
+                            MINIO_BUCKET=drinkshop-bucket-prod \
+                            MINIO_USE_SSL=false \
                             CONNECTION_STRING="${connStr}" \
-                            docker-compose up -d --build
+                            docker-compose -f docker-compose.prod.yml up -d --build
                         """
                     }
                 }
