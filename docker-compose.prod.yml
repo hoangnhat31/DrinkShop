@@ -90,6 +90,10 @@ services:
     depends_on:
       - api_1
       - api_2
+    # --- THÊM DÒNG NÀY ---
+    networks:
+      - drinkshop_network_prod
+
 networks:
   drinkshop_network_prod:
     driver: bridge
