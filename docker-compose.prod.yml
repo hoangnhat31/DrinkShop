@@ -79,7 +79,6 @@ services:
     <<: *api_prod
     container_name: drinkshop_api_2_prod
 
-  # 4. Gateway - Nginx
   nginx:
     container_name: drinkshop_nginx_prod
     build:
@@ -88,17 +87,11 @@ services:
     restart: always
     ports:
       - "80:80"
-    networks:
-      - drinkshop_network_prod
     depends_on:
       - api_1
       - api_2
     networks:
       - drinkshop_network_prod
-
-networks:
-  drinkshop_network_prod:
-    driver: bridge
 
 volumes:
   sql_data_prod:
