@@ -28,24 +28,26 @@ pipeline {
         stage('Deploy to Development') {
             steps {
                 script {
-                    // Lấy bí mật từ két sắt Jenkins gắn vào biến môi trường tạm thời
-                    withCredentials([string(credentialsId: 'drinkshop-db-password', variable: 'DB_PWD')]) {
+                    // PHẢI thêm đầy đủ các bí mật bạn đã tạo trong Jenkins vào đây
+                    withCredentials([
+                        string(credentialsId: 'drinkshop-db-password', variable: 'DB_PWD'),
+                        string(credentialsId: 'drinkshop-minio-user', variable: 'MINIO_USER'),
+                        string(credentialsId: 'drinkshop-minio-pass', variable: 'MINIO_PWD'),
+                        string(credentialsId: 'drinkshop-jwt-secret', variable: 'JWT_SEC')
+                    ]) {
+                        // Tạo chuỗi kết nối động dựa trên mật khẩu vừa lấy
+                        def connStr = "Server=db;Database=DrinkShopDb;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;"
+                        
                         sh """
                             IMAGE_TAG=${BUILD_NUMBER} \
                             DB_PASSWORD=${DB_PWD} \
-                            docker-compose up -d
+                            MINIO_ROOT_USER=${MINIO_USER} \
+                            MINIO_ROOT_PASSWORD=${MINIO_PWD} \
+                            JWT_SECRET=${JWT_SEC} \
+                            CONNECTION_STRING="${connStr}" \
+                            docker-compose up -d --build
                         """
                     }
-                }
-            }
-        }
-
-        stage('Deploy to Prod') {
-            // Chỉ chạy stage này nếu bạn muốn deploy bản chính thức
-            when { branch 'main' } 
-            steps {
-                script {
-                    sh "IMAGE_TAG=${BUILD_NUMBER} docker-compose -f docker-compose.prod.yml up -d"
                 }
             }
         }
