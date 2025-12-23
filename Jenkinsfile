@@ -28,7 +28,14 @@ pipeline {
         stage('Deploy to Development') {
             steps {
                 script {
-                    sh "IMAGE_TAG=${BUILD_NUMBER} docker-compose up -d"
+                    // Lấy bí mật từ két sắt Jenkins gắn vào biến môi trường tạm thời
+                    withCredentials([string(credentialsId: 'drinkshop-db-password', variable: 'DB_PWD')]) {
+                        sh """
+                            IMAGE_TAG=${BUILD_NUMBER} \
+                            DB_PASSWORD=${DB_PWD} \
+                            docker-compose up -d
+                        """
+                    }
                 }
             }
         }
