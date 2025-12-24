@@ -1,0 +1,3 @@
+FROM nginx:stable-alpine
+# Sử dụng file nginx.dev.conf bạn đã có
+COPY nginx.dev.conf /etc/nginx/nginx.conf
