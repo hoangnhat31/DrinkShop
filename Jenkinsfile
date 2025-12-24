@@ -12,34 +12,27 @@ pipeline {
         stage('Build & Push Docker Image') {
             steps {
                 script {
-                    // Gán tag dựa trên nhánh: main -> latest, develop -> develop
-                    def tag = (env.BRANCH_NAME == 'main') ? "latest" : "develop"
                     docker.withRegistry('https://index.docker.io/v1/', DOCKER_HUB_CREDS) {
                         def customImage = docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
-                        customImage.push("${tag}")
+                        customImage.push("latest") // Tag cho Prod
+                        customImage.push("develop") // Tag cho Dev
                         customImage.push("${BUILD_NUMBER}")
                     }
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy Both Environments') {
             steps {
                 script {
-                    def isProd = (env.BRANCH_NAME == 'main')
-                    def composeFile = isProd ? "docker-compose.prod.yml" : "docker-compose.yml"
-                    def bucketName = isProd ? "drinkshop-bucket-prod" : "drinkshop-bucket-dev"
-                    def envMode = isProd ? "Production" : "Development"
-
                     withCredentials([
                         string(credentialsId: 'drinkshop-db-password', variable: 'DB_PWD'),
                         string(credentialsId: 'drinkshop-minio-user', variable: 'MINIO_USER'),
                         string(credentialsId: 'drinkshop-minio-pass', variable: 'MINIO_PWD'),
                         string(credentialsId: 'drinkshop-jwt-secret', variable: 'JWT_SEC')
                     ]) {
-                        // Lưu ý: Bản Dev trong file compose bạn đã đổi cổng db thành 1434
-                        def connStr = "Server=db;Database=DrinkShopDb;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;"
-                        
+                        // 1. TRIỂN KHAI BẢN DEVELOPMENT (Cổng 8081)
+                        def connStrDev = "Server=db;Database=CHTH;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;"
                         sh """
                             IMAGE_TAG=${BUILD_NUMBER} \
                             DB_PASSWORD=${DB_PWD} \
@@ -47,11 +40,25 @@ pipeline {
                             MINIO_ROOT_PASSWORD=${MINIO_PWD} \
                             JWT_SECRET=${JWT_SEC} \
                             MINIO_ENDPOINT=minio:9000 \
-                            MINIO_BUCKET=${bucketName} \
-                            MINIO_USE_SSL=false \
-                            ASPNETCORE_ENVIRONMENT=${envMode} \
-                            CONNECTION_STRING="${connStr}" \
-                            docker-compose -f ${composeFile} up -d --build
+                            MINIO_BUCKET=drinkshop-bucket-dev \
+                            ASPNETCORE_ENVIRONMENT=Development \
+                            CONNECTION_STRING="${connStrDev}" \
+                            docker-compose -f docker-compose.yml up -d --build
+                        """
+
+                        // 2. TRIỂN KHAI BẢN PRODUCTION (Cổng 80)
+                        def connStrProd = "Server=db;Database=CHTH_Prod;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;"
+                        sh """
+                            IMAGE_TAG=${BUILD_NUMBER} \
+                            DB_PASSWORD=${DB_PWD} \
+                            MINIO_ROOT_USER=${MINIO_USER} \
+                            MINIO_ROOT_PASSWORD=${MINIO_PWD} \
+                            JWT_SECRET=${JWT_SEC} \
+                            MINIO_ENDPOINT=minio:9000 \
+                            MINIO_BUCKET=drinkshop-bucket-prod \
+                            ASPNETCORE_ENVIRONMENT=Production \
+                            CONNECTION_STRING="${connStrProd}" \
+                            docker-compose -f docker-compose.prod.yml up -d --build
                         """
                     }
                 }
