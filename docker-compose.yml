@@ -1,3 +1,4 @@
+name: drinkshop-dev
 services:
   db:
     container_name: drinkshop_sql_dev
