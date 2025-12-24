@@ -12,7 +12,8 @@ pipeline {
         stage('Build & Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKER_HUB_CREDS) {
+                    retry(3) {
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials-id') {
                         def customImage = docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
                         customImage.push("latest")   // Dùng cho bản Prod
                         customImage.push("develop")  // Dùng cho bản Dev
@@ -20,6 +21,7 @@ pipeline {
                     }
                 }
             }
+        }
         }
 
         stage('Deploy Both Environments') {
