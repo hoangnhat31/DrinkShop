@@ -1,96 +1,56 @@
 services:
-  # 1. Database - SQL Server
   db:
     container_name: drinkshop_sql_prod
-    image: ${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2022-latest}
-    restart: always
+    image: mcr.microsoft.com/mssql/server:2019-latest
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=${DB_PASSWORD}
-    ports:
-      - "1433:1433"
     volumes:
       - sql_data_prod:/var/opt/mssql
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 2G
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD}' -Q 'SELECT 1' -C || exit 1"]
-      interval: 20s
-      timeout: 10s
-      retries: 5
-    logging: &default_logging
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+    ports:
+      - "1433:1433" # Cổng SQL Prod
     networks:
       - drinkshop_network_prod
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P '${DB_PASSWORD}' -Q 'SELECT 1' -C || exit 1"]
+      interval: 10s
+      retries: 5
 
-  # 2. Storage - MinIO
   minio:
+    image: minio/minio
     container_name: drinkshop_minio_prod
-    image: minio/minio:latest
-    restart: always
-    command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
       - "9001:9001"
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data_prod:/data
-    logging:
-      <<: *default_logging
+    command: server /data --console-address ":9001"
     networks:
       - drinkshop_network_prod
 
-  # 3. Web API - Sử dụng Image từ Docker Hub
-  api_1: &api_prod
+  api_1: &api_base
     container_name: drinkshop_api_1_prod
-    # SỬA: Dùng image đã được Jenkins push lên thay vì build
-    image: hoangnhat2003/drinkshop-api:${IMAGE_TAG:-latest}
-    restart: always
+    image: hoangnhat2003/drinkshop-api:latest
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
-      - MinIO__Endpoint=${MINIO_ENDPOINT}
-      - MinIO__AccessKey=${MINIO_ROOT_USER}
-      - MinIO__SecretKey=${MINIO_ROOT_PASSWORD}
-      - MinIO__Bucket=${MINIO_BUCKET}
-      - JWT_SECRET=${JWT_SECRET}
-    deploy:
-      resources:
-        limits:
-          memory: 512M
     depends_on:
-      db:
-        condition: service_healthy
-    logging:
-      <<: *default_logging
+      db: { condition: service_healthy }
     networks:
       - drinkshop_network_prod
 
   api_2:
-    <<: *api_prod
+    <<: *api_base
     container_name: drinkshop_api_2_prod
 
   nginx:
     container_name: drinkshop_nginx_prod
-    build:
-      context: .
-      dockerfile: Dockerfile_Nginx
-    restart: always
+    build: { context: ., dockerfile: Dockerfile_Nginx }
     ports:
-      - "80:80"
-    depends_on:
-      - api_1
-      - api_2
-    # --- THÊM DÒNG NÀY ---
+      - "80:80" # Cổng truy cập Web Prod
     networks:
       - drinkshop_network_prod
 

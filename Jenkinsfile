@@ -14,8 +14,8 @@ pipeline {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', DOCKER_HUB_CREDS) {
                         def customImage = docker.build("${DOCKER_IMAGE}:${BUILD_NUMBER}")
-                        customImage.push("latest") // Tag cho Prod
-                        customImage.push("develop") // Tag cho Dev
+                        customImage.push("latest")   // Dùng cho bản Prod
+                        customImage.push("develop")  // Dùng cho bản Dev
                         customImage.push("${BUILD_NUMBER}")
                     }
                 }
@@ -32,36 +32,32 @@ pipeline {
                         string(credentialsId: 'drinkshop-jwt-secret', variable: 'JWT_SEC')
                     ]) {
                         // 1. TRIỂN KHAI BẢN DEVELOPMENT (Cổng 8081)
-                        def connStrDev = "Server=db;Database=CHTH;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;"
                         sh """
-                            IMAGE_TAG=${BUILD_NUMBER} \
-                            DB_PASSWORD=${DB_PWD} \
-                            MINIO_ROOT_USER=${MINIO_USER} \
-                            MINIO_ROOT_PASSWORD=${MINIO_PWD} \
-                            JWT_SECRET=${JWT_SEC} \
-                            MINIO_ENDPOINT=minio:9000 \
-                            MINIO_BUCKET=drinkshop-bucket-dev \
+                            IMAGE_TAG=${BUILD_NUMBER} DB_PASSWORD=${DB_PWD} MINIO_ROOT_USER=${MINIO_USER} \
+                            MINIO_ROOT_PASSWORD=${MINIO_PWD} JWT_SECRET=${JWT_SEC} \
+                            MINIO_ENDPOINT=minio:9000 MINIO_BUCKET=drinkshop-bucket-dev \
                             ASPNETCORE_ENVIRONMENT=Development \
-                            CONNECTION_STRING="${connStrDev}" \
-                            docker-compose -f docker-compose.yml up -d --build
+                            CONNECTION_STRING="Server=db;Database=CHTH;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;" \
+                            docker-compose -f docker-compose.yml up -d --build --remove-orphans
                         """
 
                         // 2. TRIỂN KHAI BẢN PRODUCTION (Cổng 80)
-                        def connStrProd = "Server=db;Database=CHTH_Prod;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;"
                         sh """
-                            IMAGE_TAG=${BUILD_NUMBER} \
-                            DB_PASSWORD=${DB_PWD} \
-                            MINIO_ROOT_USER=${MINIO_USER} \
-                            MINIO_ROOT_PASSWORD=${MINIO_PWD} \
-                            JWT_SECRET=${JWT_SEC} \
-                            MINIO_ENDPOINT=minio:9000 \
-                            MINIO_BUCKET=drinkshop-bucket-prod \
+                            IMAGE_TAG=${BUILD_NUMBER} DB_PASSWORD=${DB_PWD} MINIO_ROOT_USER=${MINIO_USER} \
+                            MINIO_ROOT_PASSWORD=${MINIO_PWD} JWT_SECRET=${JWT_SEC} \
+                            MINIO_ENDPOINT=minio:9000 MINIO_BUCKET=drinkshop-bucket-prod \
                             ASPNETCORE_ENVIRONMENT=Production \
-                            CONNECTION_STRING="${connStrProd}" \
-                            docker-compose -f docker-compose.prod.yml up -d --build
+                            CONNECTION_STRING="Server=db;Database=CHTH_Prod;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;" \
+                            docker-compose -f docker-compose.prod.yml up -d --build --remove-orphans
                         """
                     }
                 }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                sh 'docker image prune -f' // Xóa các image cũ để tránh đầy ổ cứng
             }
         }
     }
