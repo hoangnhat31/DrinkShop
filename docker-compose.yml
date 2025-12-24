@@ -39,9 +39,12 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
-      - JWT_SECRET=${JWT_SECRET}  # <-- Dòng này phải khớp hoàn toàn với Program.cs
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      # Ánh xạ đúng vào Section "MinIO" trong Program.cs (Dùng 2 dấu gạch dưới)
+      - MinIO__Endpoint=${MINIO_ENDPOINT}      # Trỏ đến "minio:9000"
+      - MinIO__BucketName=${MINIO_BUCKET}    # Trỏ đến "drinkshop-bucket-dev"
+      - MinIO__AccessKey=${MINIO_ROOT_USER}
+      - MinIO__SecretKey=${MINIO_ROOT_PASSWORD}
     depends_on:
       db: { condition: service_healthy }
     networks:
@@ -55,9 +58,15 @@ services:
     container_name: drinkshop_nginx_dev
     build: { context: ., dockerfile: Dockerfile_Nginx_Dev }
     ports:
-      - "8081:80" # Cổng truy cập Web Dev
+      - "8081:80"
     networks:
       - drinkshop_network_dev
+    # THÊM ĐOẠN NÀY:
+    depends_on:
+      api_1:
+        condition: service_started
+      api_2:
+        condition: service_started
 
 networks:
   drinkshop_network_dev:
