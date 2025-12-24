@@ -38,6 +38,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
+      - JWT_SECRET=${JWT_SECRET}  # <-- Dòng này phải khớp hoàn toàn với Program.cs
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     depends_on:
       db: { condition: service_healthy }
     networks:
