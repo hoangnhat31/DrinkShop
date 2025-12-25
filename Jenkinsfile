@@ -9,12 +9,15 @@ pipeline {
             steps { checkout scm }
         }
         stage('Unit Test') {
-            steps {
-                script {
-                    // Chạy lệnh dotnet test và xuất kết quả ra file .xml
-                    sh 'dotnet test DrinkShop.Tests/DrinkShop.Tests.csproj --logger "junit;LogFileName=test-results.xml"'
+            agent {
+                docker { 
+                    image 'mcr.microsoft.com/dotnet/sdk:9.0' 
                 }
             }
+            steps {
+                sh 'dotnet test DrinkShop.Tests/DrinkShop.Tests.csproj --logger "junit;LogFileName=test-results.xml"'
+            }
+        }
             post {
                 always {
                     // Hiển thị biểu đồ kết quả test lên giao diện Jenkins
