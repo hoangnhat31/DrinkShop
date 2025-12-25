@@ -12,23 +12,23 @@ pipeline {
         }
 
         stage('Unit Test') {
-            agent {
-                docker { 
-                    image 'mcr.microsoft.com/dotnet/sdk:9.0' 
-                    reuseNode true
+                    agent {
+                        docker { 
+                            image 'mcr.microsoft.com/dotnet/sdk:9.0' 
+                            reuseNode true
+                            // Thêm dòng này để cấp quyền root cho container SDK
+                            args '-u root' 
+                        }
+                    }
+                    steps {
+                        sh 'dotnet test DrinkShop.Tests/DrinkShop.Tests.csproj --logger "junit;LogFileName=test-results.xml"'
+                    }
+                    post {
+                        always {
+                            junit '**/test-results.xml'
+                        }
+                    }
                 }
-            }
-            steps {
-                // Chạy test cho dự án Voucher và các service khác
-                sh 'dotnet test DrinkShop.Tests/DrinkShop.Tests.csproj --logger "junit;LogFileName=test-results.xml"'
-            }
-            post {
-                always {
-                    // Hiển thị biểu đồ kết quả test
-                    junit '**/test-results.xml'
-                }
-            }
-        }
 
         stage('Build & Push Docker Image') {
             steps {
