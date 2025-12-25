@@ -35,7 +35,7 @@ services:
 
   api_1: &api_base
     container_name: drinkshop_api_1_prod
-    image: hoangnhat2003/drinkshop-api:latest
+    image: hoangnhat2003/drinkshop-api:${IMAGE_TAG:-latest}
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - CONNECTION_STRING=${CONNECTION_STRING}

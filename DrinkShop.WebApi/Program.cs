@@ -75,7 +75,8 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 // ==========================================
 // 2. CẤU HÌNH DATABASE
 // ==========================================
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = builder.Configuration["CONNECTION_STRING"]; 
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString,
         b => b.MigrationsAssembly("DrinkShop.Infrastructure")));
