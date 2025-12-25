@@ -52,12 +52,15 @@ services:
     container_name: drinkshop_api_2_prod
 
   nginx:
-    container_name: drinkshop_nginx_prod
-    build: { context: ., dockerfile: Dockerfile_Nginx }
-    ports:
-      - "80:80" # Cổng truy cập Web Prod
-    networks:
-      - drinkshop_network_prod
+      container_name: drinkshop_nginx_prod
+      build: { context: ., dockerfile: Dockerfile_Nginx }
+      ports:
+        - "80:80"
+      depends_on:
+        - api_1
+        - api_2
+      networks:
+        - drinkshop_network_prod
 
 networks:
   drinkshop_network_prod:
