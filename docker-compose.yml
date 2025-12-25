@@ -38,7 +38,7 @@ services:
     image: hoangnhat2003/drinkshop-api:${IMAGE_TAG}
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
+      - CONNECTION_STRING=${CONNECTION_STRING}
       - JWT_SECRET=${JWT_SECRET}
       # Ánh xạ đúng vào Section "MinIO" trong Program.cs (Dùng 2 dấu gạch dưới)
       - MinIO__Endpoint=${MINIO_ENDPOINT}      # Trỏ đến "minio:9000"
