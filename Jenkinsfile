@@ -8,6 +8,20 @@ pipeline {
         stage('Clone Code') {
             steps { checkout scm }
         }
+        stage('Unit Test') {
+            steps {
+                script {
+                    // Chạy lệnh dotnet test và xuất kết quả ra file .xml
+                    sh 'dotnet test DrinkShop.Tests/DrinkShop.Tests.csproj --logger "junit;LogFileName=test-results.xml"'
+                }
+            }
+            post {
+                always {
+                    // Hiển thị biểu đồ kết quả test lên giao diện Jenkins
+                    junit '**/test-results.xml'
+                }
+            }
+        }
 
         stage('Build & Push Docker Image') {
             steps {
