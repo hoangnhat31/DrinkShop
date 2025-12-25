@@ -48,7 +48,6 @@ pipeline {
         stage('Deploy Both Environments') {
             steps {
                 script {
-                    // Lấy mật khẩu và secret từ Jenkins Credentials
                     withCredentials([
                         string(credentialsId: 'drinkshop-db-password', variable: 'DB_PWD'),
                         string(credentialsId: 'drinkshop-minio-user', variable: 'MINIO_USER'),
@@ -57,24 +56,35 @@ pipeline {
                     ]) {
                         // 1. TRIỂN KHAI BẢN DEVELOPMENT (Cổng 8081)
                         sh """
-                            IMAGE_TAG=${env.BUILD_NUMBER} DB_PASSWORD=${DB_PWD} MINIO_ROOT_USER=${MINIO_USER} \
-                            MINIO_ROOT_PASSWORD=${MINIO_PWD} JWT_SECRET=${JWT_SEC} \
+                            IMAGE_TAG=${env.BUILD_NUMBER} \
+                            DB_PASSWORD=${DB_PWD} \
+                            MINIO_ROOT_USER=${MINIO_USER} \
+                            MINIO_ROOT_PASSWORD=${MINIO_PWD} \
+                            JWT_SECRET=${JWT_SEC} \
                             ASPNETCORE_ENVIRONMENT=Development \
+                            MINIO_ENDPOINT="minio:9000" \
+                            MINIO_BUCKET="drinkshop-bucket-dev" \
+                            CONNECTION_STRING="Server=db;Database=CHTH;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;" \
                             docker-compose -f docker-compose.yml up -d --build --remove-orphans
                         """
 
                         // 2. TRIỂN KHAI BẢN PRODUCTION (Cổng 80)
                         sh """
-                            IMAGE_TAG=${env.BUILD_NUMBER} DB_PASSWORD=${DB_PWD} MINIO_ROOT_USER=${MINIO_USER} \
-                            MINIO_ROOT_PASSWORD=${MINIO_PWD} JWT_SECRET=${JWT_SEC} \
+                            IMAGE_TAG=${env.BUILD_NUMBER} \
+                            DB_PASSWORD=${DB_PWD} \
+                            MINIO_ROOT_USER=${MINIO_USER} \
+                            MINIO_ROOT_PASSWORD=${MINIO_PWD} \
+                            JWT_SECRET=${JWT_SEC} \
                             ASPNETCORE_ENVIRONMENT=Production \
+                            MINIO_ENDPOINT="minio:9000" \
+                            MINIO_BUCKET="drinkshop-bucket-prod" \
+                            CONNECTION_STRING="Server=db;Database=CHTH_Prod;User Id=sa;Password=${DB_PWD};TrustServerCertificate=True;" \
                             docker-compose -f docker-compose.prod.yml up -d --build --remove-orphans
                         """
                     }
                 }
             }
         }
-
         stage('Cleanup') {
             steps {
                 sh 'docker image prune -f'
