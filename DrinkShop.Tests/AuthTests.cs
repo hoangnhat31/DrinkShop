@@ -24,7 +24,6 @@ namespace DrinkShop.Tests
             _mockConfig = new Mock<IConfiguration>();
             _mockFileStorage = new Mock<IFileStorageService>();
             
-            // Giả lập JWT Secret
             _mockConfig.Setup(c => c["JWT_SECRET"]).Returns("super_secret_key_for_testing_purposes_only_12345");
         }
 
@@ -34,13 +33,17 @@ namespace DrinkShop.Tests
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
             var context = new ApplicationDbContext(options);
-            
-            context.VaiTros.Add(new VaiTro { IDVaiTro = 3, TenVaiTro = "KhachHang" });
-            context.SaveChanges();
+
+            if (!context.VaiTros.Any(v => v.IDVaiTro == 3))
+            {
+                context.VaiTros.Add(new VaiTro { IDVaiTro = 3, TenVaiTro = "KhachHang" });
+                context.SaveChanges();
+            }
             
             return context;
         }
 
+        #region 1. TEST ĐĂNG KÝ (REGISTER)
         [Fact]
         public async Task Register_Success_ShouldCreateUser()
         {
@@ -52,8 +55,7 @@ namespace DrinkShop.Tests
             // Act
             var result = await controller.Register(request);
 
-            var okResult = Assert.IsType<OkObjectResult>(result); 
-            Assert.Equal(200, okResult.StatusCode);
+            Assert.IsType<OkObjectResult>(result); 
             Assert.True(await context.TaiKhoans.AnyAsync(u => u.Email == "test@gmail.com"));
         }
 
@@ -62,18 +64,21 @@ namespace DrinkShop.Tests
         {
             // Arrange
             var context = GetDatabaseContext();
-            context.TaiKhoans.Add(new TaiKhoan { Email = "duplicate@gmail.com", HoTen = "Old", MatKhau = "..." });
+            context.TaiKhoans.Add(new TaiKhoan { Email = "duplicate@gmail.com", HoTen = "Old", MatKhau = "abc" });
             await context.SaveChangesAsync();
 
             var controller = new AuthController(context, _mockConfig.Object, _mockFileStorage.Object);
             var request = new RegisterDto { Email = "duplicate@gmail.com", MatKhau = "123456" };
 
-
+            // Act
             var result = await controller.Register(request);
 
-            Assert.IsType<BadRequestObjectResult>(result); 
+            var actionResult = Assert.IsType<ObjectResult>(result); 
+            Assert.Equal(400, actionResult.StatusCode); 
         }
+        #endregion
 
+        #region 2. TEST ĐĂNG NHẬP (LOGIN)
         [Fact]
         public async Task Login_ValidCredentials_ShouldReturnToken()
         {
@@ -95,7 +100,9 @@ namespace DrinkShop.Tests
             var okResult = Assert.IsType<OkObjectResult>(result);
             Assert.NotNull(okResult.Value);
         }
+        #endregion
 
+        #region 3. TEST QUÊN MẬT KHẨU (FORGOT PASSWORD)
         [Fact]
         public async Task ForgotPassword_ValidEmail_ShouldSetResetToken()
         {
@@ -110,9 +117,11 @@ namespace DrinkShop.Tests
             var result = await controller.ForgotPassword(new ForgotPasswordRequest { Email = "forgot@test.com" });
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
+            Assert.IsType<OkObjectResult>(result);
             var user = await context.TaiKhoans.FirstAsync(u => u.Email == "forgot@test.com");
             Assert.NotNull(user.ResetToken);
+            Assert.NotNull(user.ResetTokenExpire);
         }
+        #endregion
     }
 }
