@@ -238,22 +238,29 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 
 app.UseMiddleware<ExceptionMiddleware>();
-using (var scope = app.Services.CreateScope())
+try 
 {
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<ApplicationDbContext>();
-    
-    // Đảm bảo Database đã được tạo
-    context.Database.EnsureCreated(); 
-
-    if (!context.VaiTros.Any())
+    using (var scope = app.Services.CreateScope())
     {
-        context.VaiTros.AddRange(
-            new VaiTro { IDVaiTro = 2, TenVaiTro = "NhanVien", Permission = "FULL_ACCESS" },
-            new VaiTro { IDVaiTro = 3, TenVaiTro = "KhachHang", Permission = "VIEW,CREATE,UPDATE" } 
-        );
-        context.SaveChanges();
+        var services = scope.ServiceProvider;
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        
+        context.Database.EnsureCreated(); 
+
+        if (!context.VaiTros.Any())
+        {
+            context.VaiTros.AddRange(
+                new VaiTro { TenVaiTro = "NhanVien", Permission = "FULL_ACCESS" },
+                new VaiTro { TenVaiTro = "KhachHang", Permission = "VIEW,CREATE,UPDATE" } 
+            );
+            context.SaveChanges();
+            Console.WriteLine("---  VaiTro thành công ---");
+        }
     }
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"--- Lỗi Seeding: {ex.Message} ---");
 }
 app.UseRouting(); 
 app.UseCors("DrinkShopCorsPolicy");
