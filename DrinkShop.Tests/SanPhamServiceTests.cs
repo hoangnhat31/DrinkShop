@@ -13,7 +13,7 @@ namespace DrinkShop.Tests
 {
     public class SanPhamServiceTests
     {
-        // Hàm trợ giúp khởi tạo Database trong RAM (InMemory) cho mỗi bài test
+        // Hàm trợ giúp khởi tạo Database trong RAM (InMemory)
         private ApplicationDbContext GetDatabaseContext()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -28,22 +28,20 @@ namespace DrinkShop.Tests
         [Fact]
         public async Task GetSanPhamById_ShouldCalculateAverageRatingCorrectly()
         {
-            // Arrange: Tạo SP và các đánh giá (5 sao và 3 sao)
             var context = GetDatabaseContext();
             var service = new SanPhamService(context);
             var sanPhamId = 1;
 
             context.SanPhams.Add(new SanPham { IDSanPham = sanPhamId, TenSanPham = "Trà Sữa", Gia = 30000 });
+            
             context.DanhGias.AddRange(
-                new DanhGia { IDSanPham = sanPhamId, SoSao = 5, NoiDung = "Rất ngon" },
-                new DanhGia { IDSanPham = sanPhamId, SoSao = 3, NoiDung = "Tạm được" }
+                new DanhGia { IDSanPham = sanPhamId, SoSao = 5 },
+                new DanhGia { IDSanPham = sanPhamId, SoSao = 3 }
             );
             await context.SaveChangesAsync();
 
-            // Act: Gọi hàm lấy chi tiết sản phẩm
             var result = await service.GetSanPhamById(sanPhamId);
 
-            // Assert: (5+3)/2 = 4.0 điểm trung bình
             Assert.NotNull(result);
             Assert.Equal(4.0, result.DiemDanhGia);
             Assert.Equal(2, result.SoLuongDanhGia);
@@ -54,16 +52,13 @@ namespace DrinkShop.Tests
         [Fact]
         public async Task AddSanPham_ShouldStoreImageUrlCorrectly()
         {
-            // Arrange
             var context = GetDatabaseContext();
             var service = new SanPhamService(context);
             var testUrl = "http://minio:9000/drinkshop/trasua.jpg";
             var sanPham = new SanPham { TenSanPham = "Trà sữa", Gia = 35000, ImageUrl = testUrl };
 
-            // Act
             await service.AddSanPham(sanPham);
 
-            // Assert: Kiểm tra dữ liệu ảnh đã được lưu vào DB chưa
             var storedSp = await context.SanPhams.FirstOrDefaultAsync(p => p.TenSanPham == "Trà sữa");
             Assert.NotNull(storedSp);
             Assert.Equal(testUrl, storedSp.ImageUrl);
@@ -74,7 +69,6 @@ namespace DrinkShop.Tests
         [Fact]
         public async Task GetSanPhams_ShouldReturnCorrectPageSize()
         {
-            // Arrange: Tạo 10 sản phẩm mẫu
             var context = GetDatabaseContext();
             var service = new SanPhamService(context);
             for (int i = 1; i <= 10; i++)
@@ -83,14 +77,12 @@ namespace DrinkShop.Tests
             }
             await context.SaveChangesAsync();
 
-            // Lấy Trang 1, kích thước 4 sản phẩm
             var pagination = new PaginationParams { PageNumber = 1, PageSize = 4 };
 
-            // Act
             var result = await service.GetSanPhams(pagination, null, null);
 
-            // Assert: Chỉ trả về đúng 4 sản phẩm thay vì tất cả
-            Assert.Equal(4, result.Count);
+            // ĐÃ SỬA: Truy cập qua .Items.Count (Vì PagedList chứa danh sách trong property Items)
+            Assert.Equal(4, result.Items.Count); 
             Assert.Equal(10, result.TotalCount);
         }
         #endregion
@@ -99,7 +91,6 @@ namespace DrinkShop.Tests
         [Fact]
         public async Task GetSanPhams_ShouldFilterByNameAndCategory()
         {
-            // Arrange
             var context = GetDatabaseContext();
             var service = new SanPhamService(context);
             context.SanPhams.AddRange(
@@ -109,12 +100,11 @@ namespace DrinkShop.Tests
             await context.SaveChangesAsync();
             var pagination = new PaginationParams { PageNumber = 1, PageSize = 10 };
 
-            // Act: Lọc theo tên "Cà phê" và loại 1
             var result = await service.GetSanPhams(pagination, "Cà phê", 1);
 
-            // Assert: Chỉ trả về 1 kết quả duy nhất thỏa mãn cả 2 điều kiện
-            Assert.Single(result);
-            Assert.Equal("Cà phê đen", result[0].TenSanPham);
+            // ĐÃ SỬA: Dùng Assert.Single trên result.Items và truy cập result.Items[0]
+            Assert.Single(result.Items);
+            Assert.Equal("Cà phê đen", result.Items[0].TenSanPham);
         }
         #endregion
 
@@ -122,17 +112,14 @@ namespace DrinkShop.Tests
         [Fact]
         public async Task DeleteSanPham_ShouldRemoveProductFromDatabase()
         {
-            // Arrange
             var context = GetDatabaseContext();
             var service = new SanPhamService(context);
             var sp = new SanPham { IDSanPham = 99, TenSanPham = "SP Test Xóa", Gia = 0 };
             context.SanPhams.Add(sp);
             await context.SaveChangesAsync();
 
-            // Act
             await service.DeleteSanPham(99);
 
-            // Assert: DB không còn chứa ID 99
             var checkSp = await context.SanPhams.FindAsync(99);
             Assert.Null(checkSp);
         }
