@@ -13,7 +13,6 @@ namespace DrinkShop.Tests
 {
     public class SanPhamServiceTests
     {
-        // Hàm trợ giúp khởi tạo Database trong RAM (InMemory)
         private ApplicationDbContext GetDatabaseContext()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -28,22 +27,37 @@ namespace DrinkShop.Tests
         [Fact]
         public async Task GetSanPhamById_ShouldCalculateAverageRatingCorrectly()
         {
+            // Arrange
             var context = GetDatabaseContext();
             var service = new SanPhamService(context);
-            var sanPhamId = 1;
 
-            context.SanPhams.Add(new SanPham { IDSanPham = sanPhamId, TenSanPham = "Trà Sữa", Gia = 30000 });
-            
+            var phanLoai = new PhanLoai { Ten = "Trà Sữa Danh Mục" };
+            context.PhanLoais.Add(phanLoai);
+            await context.SaveChangesAsync();
+
+            var sanPham = new SanPham { 
+                TenSanPham = "Trà Sữa", 
+                Gia = 30000, 
+                IDPhanLoai = phanLoai.IDPhanLoai 
+            };
+            context.SanPhams.Add(sanPham);
+            await context.SaveChangesAsync();
+
+            var sanPhamId = sanPham.IDSanPham;
+
+            // Thêm đánh giá
             context.DanhGias.AddRange(
                 new DanhGia { IDSanPham = sanPhamId, SoSao = 5 },
                 new DanhGia { IDSanPham = sanPhamId, SoSao = 3 }
             );
             await context.SaveChangesAsync();
 
+            // Act
             var result = await service.GetSanPhamById(sanPhamId);
 
+            // Assert
             Assert.NotNull(result);
-            Assert.Equal(4.0, result.DiemDanhGia);
+            Assert.Equal(4.0, result.DiemDanhGia); // (5+3)/2
             Assert.Equal(2, result.SoLuongDanhGia);
         }
         #endregion
@@ -81,7 +95,7 @@ namespace DrinkShop.Tests
 
             var result = await service.GetSanPhams(pagination, null, null);
 
-            // ĐÃ SỬA: Truy cập qua .Items.Count (Vì PagedList chứa danh sách trong property Items)
+            // Kiểm tra qua thuộc tính .Items của PagedList
             Assert.Equal(4, result.Items.Count); 
             Assert.Equal(10, result.TotalCount);
         }
@@ -93,16 +107,23 @@ namespace DrinkShop.Tests
         {
             var context = GetDatabaseContext();
             var service = new SanPhamService(context);
+
+            var pl1 = new PhanLoai { Ten = "Cà phê" };
+            var pl2 = new PhanLoai { Ten = "Trà" };
+            context.PhanLoais.AddRange(pl1, pl2);
+            await context.SaveChangesAsync();
+
             context.SanPhams.AddRange(
-                new SanPham { TenSanPham = "Cà phê đen", IDPhanLoai = 1, Gia = 20000 },
-                new SanPham { TenSanPham = "Trà đào", IDPhanLoai = 2, Gia = 25000 }
+                new SanPham { TenSanPham = "Cà phê đen", IDPhanLoai = pl1.IDPhanLoai, Gia = 20000 },
+                new SanPham { TenSanPham = "Trà đào", IDPhanLoai = pl2.IDPhanLoai, Gia = 25000 }
             );
             await context.SaveChangesAsync();
+
             var pagination = new PaginationParams { PageNumber = 1, PageSize = 10 };
 
-            var result = await service.GetSanPhams(pagination, "Cà phê", 1);
+            // Act: Lọc theo tên "Cà phê" và ID của pl1
+            var result = await service.GetSanPhams(pagination, "Cà phê", pl1.IDPhanLoai);
 
-            // ĐÃ SỬA: Dùng Assert.Single trên result.Items và truy cập result.Items[0]
             Assert.Single(result.Items);
             Assert.Equal("Cà phê đen", result.Items[0].TenSanPham);
         }
@@ -114,13 +135,15 @@ namespace DrinkShop.Tests
         {
             var context = GetDatabaseContext();
             var service = new SanPhamService(context);
-            var sp = new SanPham { IDSanPham = 99, TenSanPham = "SP Test Xóa", Gia = 0 };
+            var sp = new SanPham { TenSanPham = "SP Test Xóa", Gia = 0 };
             context.SanPhams.Add(sp);
             await context.SaveChangesAsync();
 
-            await service.DeleteSanPham(99);
+            var idToDelete = sp.IDSanPham;
 
-            var checkSp = await context.SanPhams.FindAsync(99);
+            await service.DeleteSanPham(idToDelete);
+
+            var checkSp = await context.SanPhams.FindAsync(idToDelete);
             Assert.Null(checkSp);
         }
         #endregion
