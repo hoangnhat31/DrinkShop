@@ -15,6 +15,7 @@ using DrinkShop.Domain.Interfaces;
 using DrinkShop.Infrastructure.Repositories;
 using dotenv.net;
 using Microsoft.AspNetCore.HttpOverrides;
+using DrinkShop.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors(options =>
@@ -237,7 +238,23 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 
 app.UseMiddleware<ExceptionMiddleware>();
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<ApplicationDbContext>();
+    
+    // Đảm bảo Database đã được tạo
+    context.Database.EnsureCreated(); 
 
+    if (!context.VaiTros.Any())
+    {
+        context.VaiTros.AddRange(
+            new VaiTro { IDVaiTro = 2, TenVaiTro = "NhanVien", Permission = "FULL_ACCESS" },
+            new VaiTro { IDVaiTro = 3, TenVaiTro = "KhachHang", Permission = "VIEW,CREATE,UPDATE" } 
+        );
+        context.SaveChanges();
+    }
+}
 app.UseRouting(); 
 app.UseCors("DrinkShopCorsPolicy");
 if (app.Environment.IsDevelopment())
