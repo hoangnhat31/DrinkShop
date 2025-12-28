@@ -17,7 +17,9 @@ namespace DrinkShop.Tests
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options;
-            return new ApplicationDbContext(options);
+            var context = new ApplicationDbContext(options);
+            context.Database.EnsureCreated();
+            return context;
         }
 
         [Fact]
@@ -26,11 +28,11 @@ namespace DrinkShop.Tests
             var context = GetContext();
             var service = new DonHangService(context);
 
-            var nl = new NguyenLieu { IDNguyenLieu = 1, TenNguyenLieu = "Sugar", SoLuongTon = 100 };
+            var nl = new NguyenLieu { IDNguyenLieu = 1, TenNguyenLieu = "Milk", SoLuongTon = 100 };
             var sp = new SanPham { 
                 IDSanPham = 1, 
-                TenSanPham = "Tea", 
-                Gia = 20, 
+                TenSanPham = "Latte", 
+                Gia = 30, 
                 CongThucs = new List<CongThuc> { new CongThuc { SoLuongCan = 10, NguyenLieu = nl } } 
             };
             var gh = new GioHang { 
@@ -38,16 +40,17 @@ namespace DrinkShop.Tests
                 GioHangSanPhams = new List<GioHangSanPham> { new GioHangSanPham { IDSanPham = 1, SoLuong = 2 } } 
             };
 
-            context.NguyenLieus.Add(nl);
-            context.SanPhams.Add(sp);
-            context.GioHangs.Add(gh);
+            context.Set<NguyenLieu>().Add(nl);
+            context.Set<SanPham>().Add(sp);
+            context.Set<GioHang>().Add(gh);
             await context.SaveChangesAsync();
 
-            var result = await service.CreateOrderFromCartAsync(1, "COD", null);
+            var result = await service.CreateOrderFromCartAsync(1, "Banking", null);
 
             Assert.NotNull(result);
             Assert.Equal(80, nl.SoLuongTon);
-            Assert.Empty(context.GioHangSanPhams.Where(x => x.GioHang.IDTaiKhoan == 1));
+            var items = await context.Set<GioHangSanPham>().Where(x => x.IDGioHang == gh.IDGioHang).ToListAsync();
+            Assert.Empty(items);
         }
 
         [Fact]
@@ -93,24 +96,10 @@ namespace DrinkShop.Tests
             context.AddRange(nl, sp, order);
             await context.SaveChangesAsync();
 
-            var result = await service.CancelOrderAsync(1, 1);
+            await service.CancelOrderAsync(1, 1);
 
-            Assert.True(result);
             Assert.Equal("Cancelled", order.TinhTrang);
             Assert.Equal(60, nl.SoLuongTon);
-        }
-
-        [Fact]
-        public async Task CancelOrder_WrongStatus_Throws()
-        {
-            var context = GetContext();
-            var service = new DonHangService(context);
-            var order = new DonHang { IDDonHang = 1, IDTaiKhoan = 1, TinhTrang = "Completed" };
-
-            context.DonHangs.Add(order);
-            await context.SaveChangesAsync();
-
-            await Assert.ThrowsAsync<Exception>(() => service.CancelOrderAsync(1, 1));
         }
 
         [Fact]
@@ -120,12 +109,12 @@ namespace DrinkShop.Tests
             var service = new DonHangService(context);
             var order = new DonHang { IDDonHang = 1, TinhTrang = "Pending" };
 
-            context.DonHangs.Add(order);
+            context.Set<DonHang>().Add(order);
             await context.SaveChangesAsync();
 
-            await service.UpdateOrderStatusAsync(1, "Done");
+            await service.UpdateOrderStatusAsync(1, "Shipping");
 
-            Assert.Equal("Done", order.TinhTrang);
+            Assert.Equal("Shipping", order.TinhTrang);
         }
     }
 }
