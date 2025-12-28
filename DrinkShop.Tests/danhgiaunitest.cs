@@ -83,16 +83,23 @@ namespace DrinkShop.Tests
             var context = GetContext();
             var service = new DanhGiaService(context);
 
+            var user = new TaiKhoan { IDTaiKhoan = 1, HoTen = "Anh Nhật" };
+            var product = new SanPham { IDSanPham = 10, TenSanPham = "Trà sữa" };
+            
+            context.Set<TaiKhoan>().Add(user);
+            context.Set<SanPham>().Add(product);
+
             context.Set<DanhGia>().AddRange(
-                new DanhGia { IDSanPham = 10, SoSao = 5, ThoiGianTao = DateTime.Now },
-                new DanhGia { IDSanPham = 10, SoSao = 4, ThoiGianTao = DateTime.Now }
+                new DanhGia { IDTaiKhoan = 1, IDSanPham = 10, SoSao = 5, ThoiGianTao = DateTime.Now },
+                new DanhGia { IDTaiKhoan = 1, IDSanPham = 10, SoSao = 4, ThoiGianTao = DateTime.Now }
             );
             await context.SaveChangesAsync();
 
             var result = await service.GetProductReviewSummaryAsync(10);
 
-            Assert.Equal(2, result.TotalReviews);
-            Assert.Equal(4.5, result.AverageRating); 
+         
+            Assert.Equal(2, result.TotalReviews); 
+            Assert.Equal(4.5, result.AverageRating);
         }
     }
 }
