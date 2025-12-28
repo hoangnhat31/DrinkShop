@@ -10,7 +10,6 @@ using Xunit;
 using DrinkShop.Application.Interfaces;
 using DrinkShop.Domain.Entities;
 using DrinkShop.Infrastructure;
-using DrinkShop.Application.DTO;
 
 namespace DrinkShop.Tests
 {
